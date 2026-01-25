@@ -1,30 +1,43 @@
-import requests
+import asyncio
 import json
+from websockets.asyncio.client import connect as ws_connect
 
-# API endpoint URL
-API_URL = 'http://localhost:3000/acft-data'  # will have to adjust depending on the server's port
+flight_queue = []                                                               #flights for use in data-handler, stored [{data}, {data}, ...]
+active_users = []                                                               #list of all current users to be tracked
 
-try:
-    response = requests.get(API_URL)
+def filter_aca(flight_data_list):
+    out = {}
+    for callsign in flight_data_list:
+        flight_info = flight_data_list[callsign]                                #dict of flight info WITHOUT callsign
+        if (
+            'Air Canadian' in callsign                                          #must fly for air canada
+            and flight_info['playerName'] in active_users                       #must participate in our logging sys
+        ):
+            out |= {callsign:flight_info}                                       #append dict to output
+    return out
 
-    # Check for successful response (status code 200)
-    response.raise_for_status()  # Raises HTTPError for bad responses (4xx or 5xx)
+async def load_data_to_queue(uri='wss://24data.ptfs.app/wss'):                  #open connection, then load new data
+    async with ws_connect(uri) as websocket:
+        while True:
+            data_dump = await websocket.recv()                                  #get json info
+            data_dict = json.loads(data_dump)                                   #load json info to dict
+            
+            if data_dict['t'] not in ['ACFT_DATA','EVENT_ACFT_DATA']:           #only use acft data (standard OR event server)
+                continue
 
-    # Parse the JSON response
-    data = response.json()
+            data_dict['d'] = filter_aca(data_dict['d'])                         #filter to only aca planes
+            curr_time = data_dict['s']                                          #get current time for timestamp
 
-    # Print the data (for verification)
-    print("Aircraft Data:")
-    print(json.dumps(data, indent=4)) # Pretty print the JSON for readability
+            for callsign in data_dict['d']:                                     #handle json data
+                flight_dict={                                                   #dict of flight info
+                    **{'callsign':callsign},
+                    **data_dict['d'][callsign],
+                    **{'timestamp':curr_time}
+                }
+                print(flight_dict)
+                flight_queue.append(flight_dict)                                #append to flight_queue
 
-    # Now you can use the 'data' variable in your Python code
-    # For example, you could iterate through the aircraft list:
-    # for aircraft in data:
-    #     print(aircraft['icao24']) #Accessing a specific field
-
-except requests.exceptions.RequestException as e:
-    print(f"An error occurred: {e}")
-except json.JSONDecodeError as e:
-    print(f"Error decoding JSON: {e}")
-
-# Note: Ensure that the Node.js server is running before executing this script.
+def start_loading_acft_data():                                                  #start loading info to flight_queue
+    asyncio.run(load_data_to_queue())
+def get_flight_queue():                                                         #easy fn to load current flight queue
+    return flight_queue
