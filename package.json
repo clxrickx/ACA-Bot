@@ -1,0 +1,16 @@
+{
+  "name": "api-getter",
+  "version": "1.0.0",
+  "description": "A simple API for fetching aircraft data from 24data.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  },
+  "keywords": ["api", "node.js", "express", "24data"],
+  "author": "clxrickx",
+  "license": "MIT"
+}
