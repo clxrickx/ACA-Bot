@@ -8,4 +8,9 @@ You also have the option to insert flight time for a planned flight(in the ACA s
 ## Technical Version:
 Data from 24API is accessed from an HTTP backend server, which is then sent to the main backend. From the 24API, the backend finds the total distance using speed and time, as well as points for numerical check. If both values are within a set range/margin, the result is sent to the formula, which evaluates the amount of points to compensate. This is then sent as an output to the Points Bot, which rewards the crew member with points.
 
+## Requirements:
+Run 
+pip install -r requirements.txt
+on the server before using.
+
 Note: we are not SWE's. I(clxrickx) am in no way certified to make something like this; I'm just doing my best. Please don't flame us for the horrible optimization or overhead.
