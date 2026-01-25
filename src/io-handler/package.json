@@ -11,6 +11,6 @@
     "axios": "^1.6.0"
   },
   "keywords": ["api", "node.js", "express", "24data"],
-  "author": "clxrickx",
-  "license": "MIT"
+  "contributors": ["clxrickx", "deucide"],
+  "license": "UNLICENSED"
 }

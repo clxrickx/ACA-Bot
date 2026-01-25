@@ -59,4 +59,3 @@ while True:
     if endFlight.triggered:
         endFlight()
         break
-    
