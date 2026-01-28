@@ -1,18 +1,24 @@
 import time
 from src.io_handler.get_24data import flight_queue
+from src.io_handler.get_24data import dep_arr_basic as dep_arr_basic_live
 
 def slp(seconds):
     time.sleep(seconds)
 
-flights_tracked = []
-flight_data = flight_queue.copy() #get current flight data
+flight_queue = flight_queue #import flight queue
 
 distsCartesian = []
 distsSpeed = []
 
+dep_arr_basic = [] #list of [callsign, arrival, departure]
+
 #this loop will be in effect while accurate distance calculations are being made
 while True:
-
+    # backup printout from the live callsign-keyed dict (added system)
+    for callsign, info in dep_arr_basic_live.items():
+        arrivalAero = info.get("arrivalAirport")
+        departureAero = info.get("departureAirport")
+        print(f"{callsign}: {departureAero} -> {arrivalAero}")
     break
 
 exit()
