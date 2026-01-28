@@ -16,7 +16,7 @@ def filter_aca(flight_data_list):
             and flight_info['playerName'] in active_users #must participate in our logging sys
         ):
             out |= {callsign:flight_info} #append dict to output
-    return out
+    return out # returns all aca flights as dicts where the callsign is the key
 
 async def load_data_to_queue(uri='wss://24data.ptfs.app/wss'): #open connection, then load new data
     async with ws_connect(uri) as websocket:
