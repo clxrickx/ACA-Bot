@@ -2,17 +2,17 @@ import asyncio
 import json
 from websockets.asyncio.client import connect as ws_connect
 
-flight_queue = [] #flights for use in data-handler, stored [{data}, {data}, ...]
 active_users = [] #list of all current users to be tracked
 
-flight_queue_arr_dest = [] # only appends callsign(if ACA), arrival and departure airport
+flight_plans = [] #flight plans for use in data handler, stored [{data}, {data}, ...], eligible acft only
+acft_data_queue = [] #flights for use in data-handler, stored [{data}, {data}, ...], eligible acft only
 
-# callsign -> {'departureAirport': str|None, 'arrivalAirport': str|None}
-dep_arr_basic = {}
-# callsign -> (departureAirport, arrivalAirport) last printed, to avoid spam
-_dep_arr_last_printed = {}
-
-def filter_aca(flight_data_list):
+def is_fp_eligible(flight_plan):
+    return (
+        'Air Canadian' in flight_plan['realcallsign'] #must fly for air canada
+        and flight_plan['robloxName'] in active_users #must participate in our logging sys
+    )
+def filter_acft_data(flight_data_list):
     out = {}
     for callsign in flight_data_list:
         flight_info = flight_data_list[callsign] #dict of flight info WITHOUT callsign
@@ -28,47 +28,36 @@ async def load_data_to_queue(uri='wss://24data.ptfs.app/wss'): #open connection,
         while True:
             data_dump = await websocket.recv() #get json info
             data_dict = json.loads(data_dump) #load json info to dict
+
+            #NOTE 'callsign' field in data_dict is ingame callsign NOT user-chosen callsign
             
-            if data_dict['t'] not in ['ACFT_DATA','EVENT_ACFT_DATA']: #only use acft data (standard OR event server)
-                continue
+            if data_dict['t'] in ['ACFT_DATA','EVENT_ACFT_DATA']: #acft data (standard OR event server)
 
-            data_dict['d'] = filter_aca(data_dict['d']) #filter to only aca planes
-            curr_time = data_dict['s'] #get current time for timestamp
+                data_dict['d'] = filter_acft_data(data_dict['d']) #filter to only eligible aca planes
+                curr_time = data_dict['s'] #get current time for timestamp
 
-            for callsign in data_dict['d']: #handle json data
+                for callsign in data_dict['d']: #handle json data
+                    flight_dict={ #dict of flight info
+                        **{'callsign':callsign},
+                        **data_dict['d'][callsign],
+                        **{'timestamp':curr_time},
+                    }
+                    acft_data_queue.append(flight_dict) #append to acft_data_queue
+            
+            elif data_dict['t'] in ['FLIGHT_PLAN', 'EVENT_FLIGHT_PLAN']: #filed flight plan (standard OR event server)
 
-                #NOTE: CALLSIGN IS INGAME CALLSIGN **NOT** PLAYER CHOSEN
+                flight_plan = data_dict['d'] #get flight plan
 
-                flight_dict={ #dict of flight info
-                    **{'callsign':callsign},
-                    **data_dict['d'][callsign],
-                    **{'timestamp':curr_time},
-                }
-                flight_queue.append(flight_dict) #append to flight_queue
+                if (
+                    is_fp_eligible(flight_plan) #signed up AND flying aca
+                    and flight_plan not in flight_plans #avoid duplicates
+                ):
+                    flight_plans.append(flight_plan)
+            
+            else: #otherwise
+                continue #for readability's sake
 
-                # Keep a simple, callsign-keyed dep/arr dict.
-                dep = flight_dict.get('departureAirport')
-                arr = flight_dict.get('arrivalAirport')
-                dep_arr_basic[callsign] = {'departureAirport': dep, 'arrivalAirport': arr}
-
-                # Print only when new or changed (can be noisy otherwise).
-                curr_pair = (dep, arr)
-                if _dep_arr_last_printed.get(callsign) != curr_pair:
-                    _dep_arr_last_printed[callsign] = curr_pair
-                    dep_disp = dep if dep is not None else "N/A"
-                    arr_disp = arr if arr is not None else "N/A"
-                    print(f"{callsign}: {dep_disp} -> {arr_disp}")
-
-
-            flight_queue_arr_dest.append( #append to simplified arr/dep queue
-                [
-                    flight_dict['callsign': callsign],
-                    flight_dict['arrivalAirport': arrivalAirport], #fix this pls thanks
-                    flight_dict['departureAirport': departureAirport] # and this
-                ]
-            )
-
-def start_loading_acft_data(): #start loading info to flight_queue
+def start_loading_acft_data(): #start loading info to acft_data_queue
     asyncio.run(load_data_to_queue())
-def get_flight_queue(): #easy fn to load current flight queue
-    return flight_queue
+def get_acft_data_queue(): #easy fn to load current flight queue
+    return acft_data_queue
