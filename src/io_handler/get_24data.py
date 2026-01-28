@@ -5,6 +5,8 @@ from websockets.asyncio.client import connect as ws_connect
 flight_queue = [] #flights for use in data-handler, stored [{data}, {data}, ...]
 active_users = [] #list of all current users to be tracked
 
+flight_queue_arr_dest = [] # only appends callsign(if ACA), arrival and departure airport
+
 def filter_aca(flight_data_list):
     out = {}
     for callsign in flight_data_list:
@@ -38,6 +40,14 @@ async def load_data_to_queue(uri='wss://24data.ptfs.app/wss'): #open connection,
                     **{'timestamp':curr_time},
                 }
                 flight_queue.append(flight_dict) #append to flight_queue
+        
+            flight_queue_arr_dest.append( #append to simplified arr/dep queue
+                [
+                    flight_dict['callsign': callsign],
+                    flight_dict['arrivalAirport': arrivalAirport], #fix this pls thanks
+                    flight_dict['departureAirport': departureAirport] # and this
+                ]
+            )
 
 def start_loading_acft_data(): #start loading info to flight_queue
     asyncio.run(load_data_to_queue())
