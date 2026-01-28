@@ -1,34 +1,37 @@
-import json
+import time
+from src.io_handler.get_24data import flight_queue
 
-def load_flight_data(filename):
-    with open(filename, 'r') as f:
-        data = json.load(f)
-    return data
+def slp(seconds):
+    time.sleep(seconds)
 
-flight_data = data = load_flight_data('src/io_handler/get_24data.py')
+flights_tracked = []
+flight_data = flight_queue.copy() #get current flight data
 
 distsCartesian = []
 distsSpeed = []
 
+#this loop will be in effect while accurate distance calculations are being made
 while True:
-    distNowCartesian = ((x2 - x1)**2 + (y2 - y1)**2)**0.5
-    # Correct horizontal displacement from speed by removing the vertical component
-    # Vertical change (dz) between the two altitude readings
-    dz = abs(alt2 - alt1)
-    # slant distance travelled (magnitude of displacement) from speed*time
-    slant = s * t
-    # horizontal component = sqrt(slant^2 - dz^2) when slant >= dz
-    if slant >= dz:
-        distNowSpeed = (slant**2 - dz**2)**0.5
-    else:
-        # If altitude change exceeds slant distance due to measurement error,
-        # set horizontal displacement to 0 and warn
-        distNowSpeed = 0.0
-        print("Warning: altitude change ({:.3f}) larger than distance travelled ({:.3f}); setting horizontal displacement to 0".format(dz, slant))
-    distsCartesian.append(distNowCartesian)
-    distsSpeed.append(distNowSpeed)
-    # update previous altitude for next iteration
-    alt2 = alt1
-    if endFlight.triggered:
-        endFlight()
-        break
+
+    break
+
+exit()
+
+#remove accurate calculations for now at least until i/o handling is completed
+while True:
+    slp(3)
+    for i in range(len(flight_data)-1):
+        acft1 = flight_data[i]
+        acft2 = flight_data[i+1]
+
+        # Calculate Cartesian distance
+        dx = acft2['x'] - acft1['x']
+        dy = acft2['y'] - acft1['y']
+        dz = acft2['z'] - acft1['z']
+        dist_cartesian = (dx**2 + dy**2 + dz**2)**0.5
+        distsCartesian.append(dist_cartesian)
+
+        # Calculate Speed difference
+        speed_diff = abs(acft2['speed'] - acft1['speed'])
+        distsSpeed.append(speed_diff)
+    
